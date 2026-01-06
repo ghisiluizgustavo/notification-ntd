@@ -23,7 +23,7 @@ public class NotifyUsersHandler {
     private final UserRepository userRepository;
     private final List<NotificationStrategy> strategies;
 
-    public void handle(NotificationController.NotificationRequest request) {
+    public void handle(NotificationRequest request) {
         final NotificationCategory category = request.category();
         final String content = request.content();
 
