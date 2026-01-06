@@ -7,8 +7,6 @@ import me.ghisiluizgustavo.notification.domain.NotificationCategory;
 import me.ghisiluizgustavo.notification.domain.NotificationStatus;
 import me.ghisiluizgustavo.notification.infrastructure.database.NotificationEntityJpa;
 import me.ghisiluizgustavo.notification.infrastructure.database.NotificationRepository;
-import me.ghisiluizgustavo.notification.infrastructure.rest.NotificationController;
-import me.ghisiluizgustavo.user.domain.User;
 import me.ghisiluizgustavo.user.infrastructure.database.UserRepository;
 import org.springframework.stereotype.Service;
 
@@ -47,23 +45,23 @@ public class NotifyUsersHandler {
         subscribedUsers.forEach(user -> {
             log.info("Processing user: {}", user.name());
 
-            user.channels().forEach(channel -> {
-                strategies.stream()
-                    .filter(strategy -> strategy.supports(channel))
-                    .forEach(strategy -> {
-                        // Cria notificação temporária para envio (sem persistir)
-                        Notification tempNotification = Notification.create(category, channel, content);
-                        strategy.send(user, tempNotification);
+            user.channels().forEach(channel -> strategies.stream()
+                .filter(strategy -> strategy.supports(channel))
+                .forEach(strategy -> {
+                    final var notification = Notification.create(category, channel, content);
+                    notification.setUserId(user.id());
+
+                    try {
+                        strategy.send(user, notification);
                         log.info("Sent via {} to {}", channel, user.name());
+                        notification.updateStatus(NotificationStatus.SENT);
+                    } catch (Exception e) {
+                        log.error("Failed to send notification to {} via {}", user.name(), channel, e);
+                        notification.updateStatus(NotificationStatus.FAILED);
+                    }
 
-                        // Cria e persiste notificação para este usuário e canal
-                        Notification channelNotification = Notification.create(category, channel, content);
-                        channelNotification.setUserId(user.id());
-                        channelNotification.updateStatus(NotificationStatus.SENT);
-
-                        notificationRepository.save(NotificationEntityJpa.fromDomain(channelNotification));
-                    });
-            });
+                    notificationRepository.save(NotificationEntityJpa.fromDomain(notification));
+                }));
         });
 
         log.info("Notification process completed! Sent to {} users", subscribedUsers.size());
