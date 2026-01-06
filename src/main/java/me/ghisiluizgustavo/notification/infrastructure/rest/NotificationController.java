@@ -1,5 +1,6 @@
 package me.ghisiluizgustavo.notification.infrastructure.rest;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import me.ghisiluizgustavo.notification.feature.listhistory.ListNotificationHistoryHandler;
 import me.ghisiluizgustavo.notification.feature.listhistory.NotificationHistoryResponse;
@@ -20,7 +21,7 @@ public class NotificationController {
 
     @PostMapping
     @ResponseStatus(value = HttpStatus.NO_CONTENT)
-    public void notifyUsers(@RequestBody NotificationRequest notificationRequest) {
+    public void notifyUsers(@Valid @RequestBody NotificationRequest notificationRequest) {
         notifyUsersHandler.handle(notificationRequest);
     }
 

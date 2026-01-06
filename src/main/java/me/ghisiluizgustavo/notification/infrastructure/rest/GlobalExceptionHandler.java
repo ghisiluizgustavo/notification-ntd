@@ -6,6 +6,8 @@ import me.ghisiluizgustavo.notification.domain.NotificationCategory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -44,6 +46,29 @@ public class GlobalExceptionHandler {
             HttpStatus.BAD_REQUEST.value(),
             "Bad Request",
             "Invalid request body. Please check the JSON format and field values.",
+            request.getRequestURI()
+        );
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidationErrors(
+        MethodArgumentNotValidException ex,
+        HttpServletRequest request
+    ) {
+        String errorMessage = ex.getBindingResult()
+            .getFieldErrors()
+            .stream()
+            .map(FieldError::getDefaultMessage)
+            .collect(Collectors.joining("; "));
+        
+        log.warn("Validation failed: {}", errorMessage);
+        
+        ErrorResponse errorResponse = ErrorResponse.of(
+            HttpStatus.BAD_REQUEST.value(),
+            "Validation Error",
+            errorMessage,
             request.getRequestURI()
         );
         
